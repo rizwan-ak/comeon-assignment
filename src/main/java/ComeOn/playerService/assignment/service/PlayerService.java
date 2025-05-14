@@ -65,4 +65,14 @@ public class PlayerService {
 
         return sessionRepository.save(session);
     }
+
+    public void logout(Long sessionId) {
+        Session session = sessionRepository.findByIdAndLogoutTimeIsNull(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Active session not found"));
+
+        session.setLogoutTime(LocalDateTime.now());
+        sessionRepository.save(session);
+
+        logger.info("Player {} logged out (session {}).", session.getPlayer().getEmail(), sessionId);
+    }
 }

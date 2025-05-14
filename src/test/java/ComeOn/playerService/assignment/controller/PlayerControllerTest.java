@@ -81,4 +81,47 @@ public class PlayerControllerTest {
                 .andExpect(jsonPath("$.loginTime").exists());
     }
 
+    @Test
+    void testPlayerLogoutSuccess() throws Exception {
+        // Register
+        PlayerRegistrationRequest request = new PlayerRegistrationRequest();
+        request.email = TEST_EMAIL;
+        request.password = TEST_PASSWORD;
+        request.name = TEST_NAME;
+        request.surname = TEST_SURNAME;
+        request.dateOfBirth = TEST_DATE_OF_BIRTH;
+        request.address = TEST_ADDRESS;
+
+        mockMvc.perform(post(BASE_URL + "/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Login
+        String loginPayload = String.format("""
+                {
+                  "email": "%s",
+                  "password": "%s"
+                }
+                """, TEST_EMAIL, TEST_PASSWORD);
+
+        String sessionResponse = mockMvc.perform(post(BASE_URL + "/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(loginPayload))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        // Extract session ID
+        Long sessionId = objectMapper.readTree(sessionResponse).get("id").asLong();
+
+        // Logout
+        String logoutPayload = String.format("{\"sessionId\": %d}", sessionId);
+
+        mockMvc.perform(post(BASE_URL + "/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(logoutPayload))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Player logged out successfully"));
+    }
+
 }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import comeon.playerservice.assignment.dto.LoginRequest;
+import comeon.playerservice.assignment.dto.LogoutRequest;
 import comeon.playerservice.assignment.dto.PlayerRegistrationRequest;
 import comeon.playerservice.assignment.entity.Player;
 import comeon.playerservice.assignment.entity.Session;
@@ -32,4 +33,11 @@ public class PlayerController {
         Session session = playerService.login(request);
         return ResponseEntity.ok(session);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody LogoutRequest request) {
+        playerService.logout(request.getSessionId());
+        return ResponseEntity.ok("Player logged out successfully");
+    }
+
 }
