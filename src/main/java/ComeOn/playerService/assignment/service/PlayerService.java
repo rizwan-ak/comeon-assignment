@@ -1,6 +1,8 @@
 package comeon.playerservice.assignment.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,10 +55,27 @@ public class PlayerService {
 
     public Session login(LoginRequest request) {
         Player player = playerRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), player.getPassword())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+
+        Integer dailyLimit = player.getDailyTimeLimitInMinutes();
+        if (dailyLimit != null) {
+            // Sum today's session durations
+            LocalDateTime start = LocalDate.now().atStartOfDay();
+            LocalDateTime end = LocalDateTime.now();
+            List<Session> todaySessions = sessionRepository.findTodaySessionsByPlayerId(player.getId(), start, end);
+
+            long totalMinutes = todaySessions.stream().mapToLong(session -> {
+                LocalDateTime logout = session.getLogoutTime() != null ? session.getLogoutTime() : end;
+                return java.time.Duration.between(session.getLoginTime(), logout).toMinutes();
+            }).sum();
+
+            if (totalMinutes >= dailyLimit) {
+                throw new IllegalStateException("Daily time limit reached");
+            }
         }
 
         Session session = Session.builder()
