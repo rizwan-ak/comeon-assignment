@@ -78,6 +78,17 @@ public class PlayerService {
             }
         }
 
+        // Automatically log out active players if they exceed the time limit
+        sessionRepository.findByPlayerIdAndLogoutTimeIsNull(player.getId()).forEach(activeSession -> {
+            LocalDateTime now = LocalDateTime.now();
+            long activeMinutes = java.time.Duration.between(activeSession.getLoginTime(), now).toMinutes();
+            if (dailyLimit != null && activeMinutes >= dailyLimit) {
+                activeSession.setLogoutTime(now);
+                sessionRepository.save(activeSession);
+                logger.info("Player {} logged out due to reaching daily time limit.", player.getEmail());
+            }
+        });
+
         Session session = Session.builder()
                 .player(player)
                 .loginTime(LocalDateTime.now())
@@ -88,7 +99,7 @@ public class PlayerService {
 
     public void logout(Long sessionId) {
         Session session = sessionRepository.findByIdAndLogoutTimeIsNull(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("Active session not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid session ID"));
 
         session.setLogoutTime(LocalDateTime.now());
         sessionRepository.save(session);
