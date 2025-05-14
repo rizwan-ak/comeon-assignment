@@ -24,8 +24,8 @@ public class PlayerController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Player> register(@RequestBody PlayerRegistrationRequest playerRegistrationRequest) {
-        Player player = playerService.registerPlayer(playerRegistrationRequest);
+    public ResponseEntity<Player> register(@RequestBody PlayerRegistrationRequest request) {
+        Player player = playerService.registerPlayer(request);
         return ResponseEntity.ok(player);
     }
 
@@ -41,7 +41,7 @@ public class PlayerController {
         return ResponseEntity.ok("Player logged out successfully");
     }
 
-    @PostMapping("/limit")
+    @PostMapping("/set-daily-limit")
     public ResponseEntity<String> setTimeLimit(@RequestBody SetTimeLimitRequest request) {
         playerService.setTimeLimit(request);
         return ResponseEntity.ok("Time limit set successfully");

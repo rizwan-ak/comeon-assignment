@@ -21,12 +21,11 @@ import comeon.playerservice.assignment.repository.SessionRepository;
 public class PlayerService {
     private static final Logger logger = LoggerFactory.getLogger(PlayerService.class);
 
-    private final SessionRepository sessionRepository;
     private final PlayerRepository playerRepository;
+    private final SessionRepository sessionRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public PlayerService(PlayerRepository playerRepository,
-            SessionRepository sessionRepository,
+    public PlayerService(PlayerRepository playerRepository, SessionRepository sessionRepository,
             BCryptPasswordEncoder passwordEncoder) {
         this.playerRepository = playerRepository;
         this.sessionRepository = sessionRepository;
@@ -37,7 +36,6 @@ public class PlayerService {
         logger.info("Registering player with email: {}", request.email);
 
         if (playerRepository.findByEmail(request.email).isPresent()) {
-            logger.error("Email already registered: {}", request.email);
             throw new IllegalArgumentException("Email already registered");
         }
 
@@ -61,33 +59,7 @@ public class PlayerService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        Integer dailyLimit = player.getDailyTimeLimitInMinutes();
-        if (dailyLimit != null) {
-            // Sum today's session durations
-            LocalDateTime start = LocalDate.now().atStartOfDay();
-            LocalDateTime end = LocalDateTime.now();
-            List<Session> todaySessions = sessionRepository.findTodaySessionsByPlayerId(player.getId(), start, end);
-
-            long totalMinutes = todaySessions.stream().mapToLong(session -> {
-                LocalDateTime logout = session.getLogoutTime() != null ? session.getLogoutTime() : end;
-                return java.time.Duration.between(session.getLoginTime(), logout).toMinutes();
-            }).sum();
-
-            if (totalMinutes >= dailyLimit) {
-                throw new IllegalStateException("Daily time limit reached");
-            }
-        }
-
-        // Automatically log out active players if they exceed the time limit
-        sessionRepository.findByPlayerIdAndLogoutTimeIsNull(player.getId()).forEach(activeSession -> {
-            LocalDateTime now = LocalDateTime.now();
-            long activeMinutes = java.time.Duration.between(activeSession.getLoginTime(), now).toMinutes();
-            if (dailyLimit != null && activeMinutes >= dailyLimit) {
-                activeSession.setLogoutTime(now);
-                sessionRepository.save(activeSession);
-                logger.info("Player {} logged out due to reaching daily time limit.", player.getEmail());
-            }
-        });
+        enforceDailyTimeLimit(player);
 
         Session session = Session.builder()
                 .player(player)
@@ -111,10 +83,7 @@ public class PlayerService {
         Player player = playerRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Player not found"));
 
-        boolean hasActiveSession = sessionRepository
-                .findByPlayerIdAndLogoutTimeIsNull(player.getId()).size() > 0;
-
-        if (!hasActiveSession) {
+        if (!hasActiveSession(player.getId())) {
             throw new IllegalStateException("Player is not active");
         }
 
@@ -125,4 +94,35 @@ public class PlayerService {
                 player.getEmail());
     }
 
+    private void enforceDailyTimeLimit(Player player) {
+        Integer dailyLimit = player.getDailyTimeLimitInMinutes();
+        if (dailyLimit == null)
+            return;
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Session> todaySessions = sessionRepository.findTodaySessionsByPlayerId(player.getId(), startOfDay, now);
+        long totalMinutes = todaySessions.stream()
+                .mapToLong(session -> java.time.Duration.between(session.getLoginTime(),
+                        session.getLogoutTime() != null ? session.getLogoutTime() : now).toMinutes())
+                .sum();
+
+        if (totalMinutes >= dailyLimit) {
+            throw new IllegalStateException("Daily time limit reached");
+        }
+
+        sessionRepository.findByPlayerIdAndLogoutTimeIsNull(player.getId()).forEach(activeSession -> {
+            long activeMinutes = java.time.Duration.between(activeSession.getLoginTime(), now).toMinutes();
+            if (activeMinutes >= dailyLimit) {
+                activeSession.setLogoutTime(now);
+                sessionRepository.save(activeSession);
+                logger.info("Player {} logged out due to reaching daily time limit.", player.getEmail());
+            }
+        });
+    }
+
+    private boolean hasActiveSession(Long playerId) {
+        return !sessionRepository.findByPlayerIdAndLogoutTimeIsNull(playerId).isEmpty();
+    }
 }
