@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import comeon.playerservice.assignment.dto.LoginRequest;
 import comeon.playerservice.assignment.dto.LogoutRequest;
 import comeon.playerservice.assignment.dto.PlayerRegistrationRequest;
+import comeon.playerservice.assignment.dto.SetTimeLimitRequest;
 import comeon.playerservice.assignment.entity.Player;
 import comeon.playerservice.assignment.entity.Session;
 import comeon.playerservice.assignment.service.PlayerService;
@@ -38,6 +39,12 @@ public class PlayerController {
     public ResponseEntity<String> logout(@RequestBody LogoutRequest request) {
         playerService.logout(request.getSessionId());
         return ResponseEntity.ok("Player logged out successfully");
+    }
+
+    @PostMapping("/limit")
+    public ResponseEntity<String> setTimeLimit(@RequestBody SetTimeLimitRequest request) {
+        playerService.setTimeLimit(request);
+        return ResponseEntity.ok("Time limit set successfully");
     }
 
 }

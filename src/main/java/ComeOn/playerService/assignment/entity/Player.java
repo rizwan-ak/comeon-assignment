@@ -30,4 +30,7 @@ public class Player {
     private LocalDate dateOfBirth;
 
     private String address;
+
+    @Column(name = "daily_limit_minutes")
+    private Integer dailyTimeLimitInMinutes;
 }

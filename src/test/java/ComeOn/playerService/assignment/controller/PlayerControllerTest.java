@@ -124,4 +124,48 @@ public class PlayerControllerTest {
                 .andExpect(content().string("Player logged out successfully"));
     }
 
+    @Test
+    void testSetTimeLimitSuccess() throws Exception {
+        // Register
+        PlayerRegistrationRequest request = new PlayerRegistrationRequest();
+        request.email = TEST_EMAIL;
+        request.password = TEST_PASSWORD;
+        request.name = TEST_NAME;
+        request.surname = TEST_SURNAME;
+        request.dateOfBirth = TEST_DATE_OF_BIRTH;
+        request.address = TEST_ADDRESS;
+
+        mockMvc.perform(post(BASE_URL + "/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Login to create active session
+        String loginPayload = String.format("""
+                {
+                  "email": "%s",
+                  "password": "%s"
+                }
+                """, TEST_EMAIL, TEST_PASSWORD);
+
+        mockMvc.perform(post(BASE_URL + "/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(loginPayload))
+                .andExpect(status().isOk());
+
+        // Set time limit
+        String limitPayload = String.format("""
+                {
+                  "email": "%s",
+                  "dailyLimitMinutes": 60
+                }
+                """, TEST_EMAIL);
+
+        mockMvc.perform(post(BASE_URL + "/limit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(limitPayload))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Time limit set successfully"));
+    }
+
 }

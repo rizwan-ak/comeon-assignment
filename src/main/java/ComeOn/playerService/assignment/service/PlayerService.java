@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import comeon.playerservice.assignment.dto.LoginRequest;
 import comeon.playerservice.assignment.dto.PlayerRegistrationRequest;
+import comeon.playerservice.assignment.dto.SetTimeLimitRequest;
 import comeon.playerservice.assignment.entity.Player;
 import comeon.playerservice.assignment.entity.Session;
 import comeon.playerservice.assignment.repository.PlayerRepository;
@@ -75,4 +76,23 @@ public class PlayerService {
 
         logger.info("Player {} logged out (session {}).", session.getPlayer().getEmail(), sessionId);
     }
+
+    public void setTimeLimit(SetTimeLimitRequest request) {
+        Player player = playerRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Player not found"));
+
+        boolean hasActiveSession = sessionRepository
+                .findByPlayerIdAndLogoutTimeIsNull(player.getId()).size() > 0;
+
+        if (!hasActiveSession) {
+            throw new IllegalStateException("Player is not active");
+        }
+
+        player.setDailyTimeLimitInMinutes(request.getDailyLimitMinutes());
+        playerRepository.save(player);
+
+        logger.info("Set daily time limit of {} minutes for player {}", request.getDailyLimitMinutes(),
+                player.getEmail());
+    }
+
 }
