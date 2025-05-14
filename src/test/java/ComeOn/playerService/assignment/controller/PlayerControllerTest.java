@@ -48,4 +48,37 @@ public class PlayerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(TEST_EMAIL));
     }
+
+    @Test
+    void testPlayerLoginSuccess() throws Exception {
+        // First, register the player
+        PlayerRegistrationRequest request = new PlayerRegistrationRequest();
+        request.email = TEST_EMAIL;
+        request.password = TEST_PASSWORD;
+        request.name = TEST_NAME;
+        request.surname = TEST_SURNAME;
+        request.dateOfBirth = TEST_DATE_OF_BIRTH;
+        request.address = TEST_ADDRESS;
+
+        mockMvc.perform(post(BASE_URL + "/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Then, login with the same credentials
+        String loginPayload = String.format("""
+                {
+                  "email": "%s",
+                  "password": "%s"
+                }
+                """, TEST_EMAIL, TEST_PASSWORD);
+
+        mockMvc.perform(post(BASE_URL + "/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(loginPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.loginTime").exists());
+    }
+
 }

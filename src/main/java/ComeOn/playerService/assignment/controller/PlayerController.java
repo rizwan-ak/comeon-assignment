@@ -1,10 +1,15 @@
 package comeon.playerservice.assignment.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import comeon.playerservice.assignment.dto.LoginRequest;
 import comeon.playerservice.assignment.dto.PlayerRegistrationRequest;
 import comeon.playerservice.assignment.entity.Player;
+import comeon.playerservice.assignment.entity.Session;
 import comeon.playerservice.assignment.service.PlayerService;
 
 @RestController
@@ -20,5 +25,11 @@ public class PlayerController {
     public ResponseEntity<Player> register(@RequestBody PlayerRegistrationRequest playerRegistrationRequest) {
         Player player = playerService.registerPlayer(playerRegistrationRequest);
         return ResponseEntity.ok(player);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Session> login(@RequestBody LoginRequest request) {
+        Session session = playerService.login(request);
+        return ResponseEntity.ok(session);
     }
 }
